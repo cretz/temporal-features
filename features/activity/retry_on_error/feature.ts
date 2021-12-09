@@ -10,13 +10,14 @@ export const feature = new Feature({
     alwaysFailActivity,
   },
   checkResult: async (runner, handle) => {
-    try {
-      await runner.waitForRunResult(handle);
-      throw new Error('expected failure');
-    } catch (err) {
-      assert.ok(err instanceof WorkflowFailedError);
+    await assert.rejects(runner.waitForRunResult(handle), (err) => {
+      assert.ok(
+        err instanceof WorkflowFailedError,
+        `expected WorkflowFailedError, got ${typeof err}, message: ${(err as any).message}`
+      );
       assert.equal(err.cause?.cause?.message, 'activity attempt 5 failed');
-    }
+      return true;
+    });
   },
 });
 

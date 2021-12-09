@@ -1,6 +1,6 @@
 //go:build !pre1.11.0
 
-package tally_metrics
+package metrics
 
 import (
 	"context"
