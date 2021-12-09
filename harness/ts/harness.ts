@@ -6,13 +6,38 @@ import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface FeatureOptions<W extends Workflow, A extends ActivityInterface> {
-  // Defaults to import(workflowsPath).workflow
+  /**
+   * Workflow to execute. This defaults to `import(workflowsPath).workflow` if
+   * unset.
+   */
   workflow?: W;
-  // Defaults to no activities
+
+  /**
+   * Activities to register if any.
+   */
   activities?: A;
+
+  /**
+   * Path to for WorkerOptions.workflowsPath. Defaults to the feature directory
+   * + '/feature.workflow.ts'.
+   */
   workflowsPath?: string;
+
+  /**
+   * Execute the workflow. If unset, defaults to
+   * Runner.executeSingleParameterlessWorkflow.
+   */
   execute?: (runner: Runner<W, A>) => Promise<WorkflowHandleWithRunId<W>>;
+
+  /**
+   * Wait on and check the result of the workflow. If unset, defaults to
+   * Runner.waitForRunResult.
+   */
   checkResult?: (runner: Runner<W, A>, handle: WorkflowHandleWithRunId<W>) => Promise<void>;
+
+  /**
+   * Check the history of the workflow run. TODO(cretz): Unhandled currently
+   */
   checkHistory?: (runner: Runner<W, A>, handle: WorkflowHandleWithRunId<W>) => Promise<void>;
 }
 
@@ -77,12 +102,9 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
       activities: feature.activities,
       taskQueue: options.taskQueue,
     });
-    worker
-      .run()
-      .catch((err) => console.log('Worker failed: ', err))
-      .finally(() => conn.client.close());
+    const workerRunPromise = worker.run().finally(() => conn.client.close());
 
-    return new Runner(source, feature, workflowsPath, options, conn, client, worker);
+    return new Runner(source, feature, workflowsPath, options, conn, client, worker, workerRunPromise);
   }
 
   private constructor(
@@ -92,10 +114,16 @@ export class Runner<W extends Workflow, A extends ActivityInterface> {
     readonly options: RunnerOptions,
     readonly conn: Connection,
     readonly client: WorkflowClient,
-    readonly worker: Worker
+    readonly worker: Worker,
+    readonly workerRunPromise: Promise<void>
   ) {}
 
   async run() {
+    // Run the workflow and fail if workflow or worker fails
+    return await Promise.race([this.workerRunPromise, this.runWorkflow()]);
+  }
+
+  private async runWorkflow() {
     // Start
     console.log(`Executing feature ${this.source.relDir}`);
     let handle;
