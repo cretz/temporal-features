@@ -95,7 +95,7 @@ func RegisteredFeatures() []*PreparedFeature {
 	return ret
 }
 
-// PrepareFeature prepares the given feature.
+// PrepareFeature prepares the given feature. See PreparedFeature for more info.
 func PrepareFeature(feature Feature) (*PreparedFeature, error) {
 	p := &PreparedFeature{
 		Feature:    feature,

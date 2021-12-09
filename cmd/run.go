@@ -59,7 +59,7 @@ func (r *RunConfig) flags() []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:        "generate-history",
-			Usage:       "Generate the history of the features that are run",
+			Usage:       "Generate the history of the features that are run (overwrites any existing history)",
 			Destination: &r.GenerateHistory,
 		},
 		&cli.BoolFlag{
